@@ -68,7 +68,10 @@ def analyse_licensing(lic: dict[str, Any], eps_hist: list[dict], fpm_hist: list[
     expiry_days = None
     if lic.get("expiry"):
         try:
-            expiry_days = (datetime.fromisoformat(lic["expiry"]) - now).days
+            exp = datetime.fromisoformat(str(lic["expiry"]))
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            expiry_days = (exp - now).days
         except ValueError:
             pass
     ranks = {"unknown": -1, "low": 0, "medium": 1, "high": 2, "critical": 3}
