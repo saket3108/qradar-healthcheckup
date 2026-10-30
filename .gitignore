@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+# Node
+node_modules/
+dist/
+coverage/
+# Runtime data
+data/
+backend/data/
+*.log
+.env
+.DS_Store
+# Generated samples
+sample_data/*.tar.gz
+sample_data/*.zip

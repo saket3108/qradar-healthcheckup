@@ -1,0 +1,7 @@
+{
+  "name": "qhc-pptx-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PowerPoint generator for the QRadar Health Checkup Platform (pptxgenjs)",
+  "dependencies": { "pptxgenjs": "3.12.0" }
+}
