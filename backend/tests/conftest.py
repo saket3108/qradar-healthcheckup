@@ -8,7 +8,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 _tmp = tempfile.mkdtemp(prefix="qhc_test_")
-os.environ.update({"QHC_DATABASE_URL": f"sqlite:///{_tmp}/test.db", "QHC_STORAGE_DIR": f"{_tmp}/storage", "QHC_ADMIN_EMAIL": "admin@example.com",
+os.environ.update({"QHC_DATABASE_URL": os.environ.get("QHC_TEST_DATABASE_URL", f"sqlite:///{_tmp}/test.db"), "QHC_STORAGE_DIR": f"{_tmp}/storage", "QHC_ADMIN_EMAIL": "admin@example.com",
                    "QHC_ADMIN_PASSWORD": "AdminPass12345", "QHC_RUN_MODE": "inline", "QHC_SECRET_KEY": "test-secret-key-test-secret-key-12345", "QHC_PARSE_WORKERS": "1"})
 
 
