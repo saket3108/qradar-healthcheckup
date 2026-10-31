@@ -1,0 +1,12 @@
+venv
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+tests
+data
+pptx_gen/node_modules
+requirements-dev.txt
+pytest.ini

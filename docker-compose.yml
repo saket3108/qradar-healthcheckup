@@ -1,0 +1,84 @@
+name: qradar-healthcheckup
+
+x-backend-env: &backend-env
+  QHC_ENVIRONMENT: production
+  QHC_DATABASE_URL: postgresql+psycopg://qhc:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/qhc
+  QHC_REDIS_URL: redis://redis:6379/0
+  QHC_RUN_MODE: celery
+  QHC_SECRET_KEY: ${QHC_SECRET_KEY:?set QHC_SECRET_KEY in .env}
+  QHC_ADMIN_EMAIL: ${QHC_ADMIN_EMAIL:?set QHC_ADMIN_EMAIL in .env}
+  QHC_ADMIN_PASSWORD: ${QHC_ADMIN_PASSWORD:?set QHC_ADMIN_PASSWORD in .env}
+  QHC_STORAGE_DIR: /data/storage
+  QHC_CORS_ORIGINS: ${QHC_CORS_ORIGINS:-["http://localhost:8080"]}
+  QHC_MAX_UPLOAD_BYTES: ${QHC_MAX_UPLOAD_BYTES:-107374182400}
+  QHC_LLM_BASE_URL: ${QHC_LLM_BASE_URL:-}
+  QHC_LLM_API_KEY: ${QHC_LLM_API_KEY:-}
+  QHC_LLM_MODEL: ${QHC_LLM_MODEL:-gpt-4o-mini}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qhc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: qhc
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qhc -d qhc"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]   # AOF keeps queued jobs across restarts
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment: *backend-env
+    volumes:
+      - qhc_data:/data
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Background analysis workers. Scale with: docker compose up -d --scale worker=4
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    environment: *backend-env
+    command: ["celery", "-A", "app.pipeline.celery_app", "worker", "--loglevel=INFO", "--concurrency=${QHC_WORKER_CONCURRENCY:-2}"]
+    volumes:
+      - qhc_data:/data
+    depends_on:
+      api: { condition: service_healthy }
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${QHC_HTTP_PORT:-8080}:80"
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:
+  qhc_data:
