@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 222 30% 12%;
+    --card: 0 0% 100%;
+    --muted: 220 16% 94%;
+    --muted-foreground: 220 9% 40%;
+    --border: 220 14% 88%;
+    --primary: 216 98% 52%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 220 20% 95%;
+    --ring: 216 98% 52%;
+    --critical: 355 78% 50%;
+    --high: 24 92% 46%;
+    --medium: 42 94% 44%;
+    --low: 199 80% 42%;
+    --ok: 152 62% 36%;
+    --info: 258 60% 55%;
+    --glass: 255 255 255;
+  }
+  .dark {
+    --background: 225 30% 6%;
+    --foreground: 220 20% 94%;
+    --card: 225 26% 10%;
+    --muted: 225 20% 14%;
+    --muted-foreground: 220 11% 62%;
+    --border: 225 18% 19%;
+    --primary: 216 100% 62%;
+    --primary-foreground: 225 30% 6%;
+    --accent: 225 22% 15%;
+    --ring: 216 100% 62%;
+    --critical: 355 90% 62%;
+    --high: 24 95% 58%;
+    --medium: 45 96% 58%;
+    --low: 199 85% 58%;
+    --ok: 152 65% 48%;
+    --info: 258 85% 72%;
+    --glass: 22 28 45;
+  }
+  * { @apply border-border; }
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+  body { @apply bg-background text-foreground font-sans antialiased; font-feature-settings: "cv11", "ss01"; }
+  ::selection { background: hsl(var(--primary) / .3); }
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+}
+
+@layer components {
+  .glass { background: rgb(var(--glass) / .55); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border: 1px solid hsl(var(--border) / .8); }
+  .dark .glass { background: rgb(var(--glass) / .55); }
+  .card-surface { @apply rounded-lg border bg-card/80 backdrop-blur-md; box-shadow: 0 1px 0 hsl(var(--foreground) / .03) inset, 0 8px 24px -12px rgb(0 0 0 / .35); }
+  .label-caps { @apply text-[11px] font-medium uppercase tracking-wider text-muted-foreground; }
+  .bg-grid { background-image: radial-gradient(hsl(var(--foreground) / .06) 1px, transparent 1px); background-size: 22px 22px; }
+  .aurora { background: radial-gradient(900px 400px at 15% -10%, hsl(var(--primary) / .18), transparent 60%), radial-gradient(700px 380px at 90% 0%, hsl(var(--info) / .14), transparent 60%); }
+}
+
+.react-flow__attribution { display: none !important; }
+.react-flow__controls button { background: hsl(var(--card)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
+.react-flow__controls button:hover { background: hsl(var(--accent)); }
+.react-flow__minimap { background: hsl(var(--card)) !important; border: 1px solid hsl(var(--border)); border-radius: 8px; }
+.react-flow__edge-path { stroke: hsl(var(--muted-foreground) / .6); }
