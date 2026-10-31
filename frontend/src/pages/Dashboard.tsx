@@ -48,7 +48,7 @@ export default function Dashboard() {
                   </div>
                 </motion.div>
                 <div className="space-y-4">
-                  <Section title={h.summary.headline} description={`${assessment.customer_name ?? assessment.name} · executive summary`}>
+                  <Section title={h.summary.headline} description={`${assessment.customer_name || assessment.name} · executive summary`}>
                     <div className="space-y-2.5 text-sm leading-relaxed">{h.summary.paragraphs.map((p, i) => <p key={i}>{p}</p>)}</div>
                     {h.summary.highlights.length > 0 && <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">{h.summary.highlights.map((x, i) => <li key={i} className="flex gap-2 text-xs text-muted-foreground"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />{x}</li>)}</ul>}
                   </Section>
