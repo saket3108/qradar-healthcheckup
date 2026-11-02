@@ -39,6 +39,15 @@ open http://localhost:8080
 
 Sign in with the administrator from `.env`, drop a `get_logs` archive on **Assessments**, and watch the stages run. See [docs/INSTALL.md](docs/INSTALL.md) for production notes, scaling workers, TLS, backups and local (non-Docker) development, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design details.
 
+## Run it locally (one command)
+
+```bash
+./dev.sh start      # API on :8000, UI on :5173  ->  http://localhost:5173
+./dev.sh status | stop | restart
+```
+
+Default login `admin@example.com` / `AdminPass12345` (override with `QHC_ADMIN_EMAIL` / `QHC_ADMIN_PASSWORD` before the first start). Data persists in `./data` (git-ignored); a fresh install starts with no assessments, so upload `sample_data/*.tar.gz` (or generate them, below). Logs: `data/run/api.log`, `data/run/web.log`. The script assumes the Mac setup used during development (npm in `~/.local/bin`, Homebrew Python 3.12 in `backend/.venv`); on another machine follow [docs/INSTALL.md](docs/INSTALL.md).
+
 ## Try it without a real bundle
 
 ```bash
