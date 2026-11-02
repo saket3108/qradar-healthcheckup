@@ -125,6 +125,7 @@ function AssessmentRow({ a, canUpload, canDelete, onOpen }: { a: Assessment; can
           </div>
           {active && <div className="mt-2 max-w-sm"><Meter value={a.progress} color="hsl(var(--primary))" /><div className="mt-1 text-[11px] text-muted-foreground">{Math.round(a.progress)}% · {a.current_stage ?? "queued"}</div></div>}
           {a.status === "failed" && a.error && <div className="mt-1 max-w-xl truncate text-xs text-sev-critical" title={a.error}>{a.error}</div>}
+          {a.status === "unsupported" && a.error && <div className="mt-1 max-w-xl truncate text-xs text-sev-medium" title={a.error}>{a.error}</div>}
         </div>
       </button>
       <div className="flex items-center gap-1">
@@ -154,7 +155,7 @@ export default function Assessments() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative max-w-xs flex-1"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input aria-label="Search assessments" className="pl-9" placeholder="Search customer or file…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <Select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All statuses</option>{["completed", "processing", "queued", "partial", "failed"].map((s) => <option key={s} value={s}>{s}</option>)}
+          <option value="">All statuses</option>{["completed", "processing", "queued", "partial", "failed", "unsupported"].map((s) => <option key={s} value={s}>{s}</option>)}
         </Select>
         <span className="ml-auto text-xs text-muted-foreground">{list.data ? `${list.data.length} assessment${list.data.length === 1 ? "" : "s"}` : ""}</span>
       </div>

@@ -20,7 +20,8 @@ from app.analysis import notifications as notif_an
 from app.analysis import performance as perf_an
 from app.analysis import scoring
 from app.core.config import get_settings
-from app.ingestion.safe_extract import SafeExtractor
+from app.ingestion.detect import UNSUPPORTED_MESSAGE, build_diagnostics
+from app.ingestion.safe_extract import SafeExtractor, sniff
 from app.parsers import domain
 from app.parsers.deployment import parse_deployment_xml
 from app.parsers.tables import TableStore
@@ -73,18 +74,34 @@ def stage_extract(ctx: Ctx) -> str:
             last[0] = now
             ctx.progress(min(0.95, members / (members + 5000)), f"{members} members scanned")
 
+    archive_type = sniff(ctx.source)
+    log.info("extract: archive=%s detected_type=%s extract_dir=%s", ctx.source.name, archive_type, ctx.extract_dir)
     res = SafeExtractor(ctx.extract_dir, get_settings(), progress=prog).extract(ctx.source)
     for w in res.warnings:
         ctx.warn(w)
     cats = Counter(e["category"] for e in res.manifest)
+    diag = build_diagnostics(res.manifest, source_name=ctx.source.name, archive_type=archive_type, total_members=res.total_members,
+                             bytes_seen=res.total_bytes_seen, security_events=len(res.security_events))
+    ctx.save("diagnostics", diag)
+    log.info("extract: total_members=%d extracted_files=%d categories=%s nested=%s", res.total_members, len(res.files),
+             dict(cats), diag["nested_archives"])
+    log.info("extract: first %d paths: %s", min(100, len(diag["sample_files"])), diag["sample_files"])
+    for e in res.manifest[:500]:
+        log.debug("extract candidate: %s category=%s extracted=%s size=%s", e["path"], e["category"], e.get("extracted"), e.get("size"))
+    log.info("extract: indicators=%s layout=%s kind=%s", sorted(diag["indicators"]), diag["layout"], diag["detected_kind"])
     ctx.save("manifest", {"entries": [e for e in res.manifest if e.get("extracted")], "total_members": res.total_members,
                           "bytes_seen": res.total_bytes_seen, "bytes_extracted": res.total_bytes_extracted,
                           "categories": dict(cats), "security_events": res.security_events[:200],
                           "skipped": sum(1 for e in res.manifest if not e.get("extracted") and not e.get("nested"))})
     if res.security_events:
         ctx.warn(f"{len(res.security_events)} archive security event(s) recorded (links/duplicates skipped)")
-    if not res.files:
-        raise ValueError("No analysable files were found in the archive - is this a QRadar get_logs package?")
+    if not diag["supported"]:
+        # not a hard failure: the runner stops analysis and shows the diagnostics / inventory instead
+        ctx.warn(UNSUPPORTED_MESSAGE)
+        return f"{UNSUPPORTED_MESSAGE} ({res.total_members} files, {diag['detected_kind']})"
+    if diag["layout"] == "partial":
+        ctx.warn("Partial or non-standard get_logs layout: only some QRadar artifacts were found; results may be incomplete")
+    log.info("extract: parser selected = get_logs pipeline (%d analysable files)", len(res.files))
     return f"{len(res.files)} files extracted of {res.total_members}"
 
 

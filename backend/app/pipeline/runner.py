@@ -14,6 +14,7 @@ from sqlalchemy import delete, select
 from app.core.config import get_settings
 from app.db.base import session_scope
 from app.db.models import Assessment, AssessmentData, Finding, JobStage, utcnow
+from app.ingestion.detect import UNSUPPORTED_MESSAGE
 from app.ingestion.safe_extract import ArchiveSecurityError, UnsupportedArchiveError
 from app.pipeline.stages import STAGE_FUNCS, STAGES, Ctx
 
@@ -104,6 +105,8 @@ def run_assessment(assessment_id: str, from_stage: str | None = None) -> str:
                 st.status = "pending"
 
     for name in names:
+        if name != "extract" and not (_load(assessment_id, "diagnostics") or {"supported": True}).get("supported", True):
+            return _finish_unsupported(assessment_id)
         if name in done_names:
             continue
         # a stage whose prerequisite artefacts vanished forces re-running upstream first (handled by order above)
@@ -158,6 +161,21 @@ def run_assessment(assessment_id: str, from_stage: str | None = None) -> str:
 
     finalize(assessment_id, partial=had_failure)
     return "partial" if had_failure else "completed"
+
+
+def _finish_unsupported(assessment_id: str) -> str:
+    """Archive was extracted but holds no QRadar artifacts: skip analysis, keep the diagnostics, never produce a score."""
+    diag = _load(assessment_id, "diagnostics") or {}
+    log.warning("assessment %s: no supported QRadar artifacts (kind=%s, members=%s)", assessment_id, diag.get("detected_kind"), diag.get("total_members"))
+    with session_scope() as db:
+        for st in db.scalars(select(JobStage).where(JobStage.assessment_id == assessment_id)):
+            if st.name != "extract" and st.status != "done":
+                st.status, st.message, st.progress = "skipped", "Skipped - no supported QRadar artifacts detected", 0.0
+        a = db.get(Assessment, assessment_id)
+        a.status, a.error, a.progress, a.current_stage = "unsupported", diag.get("message") or UNSUPPORTED_MESSAGE, 100.0, None
+        a.overall_score = None
+        a.summary = None
+    return "unsupported"
 
 
 def _fail(assessment_id: str, stage: str, error: str, fatal: bool) -> None:

@@ -10,10 +10,17 @@ export interface Scores { categories: Record<string, CategoryScore>; overall: Ov
 
 export interface Assessment {
   id: string; name: string; customer_name: string | null; consultant_name: string | null; source_filename: string; source_size: number
-  status: "queued" | "processing" | "completed" | "partial" | "failed"; progress: number; current_stage: string | null; error: string | null
+  status: "queued" | "processing" | "completed" | "partial" | "failed" | "unsupported"; progress: number; current_stage: string | null; error: string | null
   qradar_version: string | null; overall_score: number | null; created_at: string; updated_at: string
   summary?: { overall?: OverallScore; categories?: Record<string, CategoryScore> } | null
   stages?: StageInfo[]
+}
+
+export interface ArchiveDiagnostics {
+  supported?: boolean; layout?: "standard" | "partial" | "unsupported"; message?: string | null; source_filename?: string; archive_type?: string
+  detected_kind?: string; identifier?: string | null; total_members?: number; total_bytes?: number; security_events?: number
+  root_folders?: { name: string; files: number }[]; top_level_files?: string[]; categories?: Record<string, number>; extensions?: Record<string, number>
+  nested_archives?: string[]; indicators?: Record<string, string[]>; largest_files?: { path: string; size: number }[]; sample_files?: string[]; guidance?: string[]
 }
 
 export interface Environment { version: string | null; fix_pack: string | null; build: string | null; deployment_type: string | null; install_type: string | null; platform: string | null; manufacturer: string | null; software_hardware: string | null; hosts: number; console: string | null; source_files?: number; supported_line?: boolean }

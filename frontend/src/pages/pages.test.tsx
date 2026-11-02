@@ -165,6 +165,40 @@ describe("assessment layout", () => {
     await waitFor(() => expect(calls.some((c) => c.path.endsWith("/resume"))).toBe(true));
   });
 
+  it("shows the diagnostics panel instead of a score for an unsupported archive", async () => {
+    mockApi({
+      [`GET /api/assessments/${AID}`]: { ...fx.assessment, status: "unsupported", overall_score: null, summary: null, error: "Archive extracted successfully but no supported QRadar artifacts were detected. See diagnostics.", stages: [] },
+      [`GET /api/assessments/${AID}/diagnostics`]: {
+        supported: false, layout: "unsupported", archive_type: "tar.gz", detected_kind: "QRadar hotfix / patch bundle (installable update, not a get_logs support export)", identifier: "QRADAR-36266",
+        total_members: 11, total_bytes: 20_000_000, root_folders: [{ name: "QRADAR-36266-hotfix-non-QIF", files: 4 }], top_level_files: ["README"], categories: { other: 11 },
+        extensions: { ".sh": 3, ".rpm": 6 }, nested_archives: ["QRADAR-36266-hotfix-non-QIF/signed-rpms.tar.gz"], indicators: {}, sample_files: ["QRADAR-36266-hotfix-non-QIF/install.sh"],
+        guidance: ["Collect a support export on the QRadar Console with: /opt/qradar/support/get_logs.sh"],
+      },
+    });
+    open();
+    expect(await screen.findByText("No supported QRadar artifacts detected")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Archive extracted successfully but no supported QRadar artifacts were detected. See diagnostics.");
+    expect(await screen.findByText("QRADAR-36266")).toBeInTheDocument();
+    expect(screen.getByText("QRadar hotfix / patch bundle")).toBeInTheDocument();
+    expect(screen.getByText("QRADAR-36266-hotfix-non-QIF/")).toBeInTheDocument();
+    expect(screen.getByText("QRADAR-36266-hotfix-non-QIF/signed-rpms.tar.gz")).toBeInTheDocument();
+    expect(screen.getByText("none")).toBeInTheDocument();
+    expect(screen.getByText(/get_logs\.sh/)).toBeInTheDocument();
+    expect(screen.queryByText("Category health")).not.toBeInTheDocument();     // no fabricated score / tabs
+    expect(screen.queryByRole("navigation", { name: "Assessment sections" })).not.toBeInTheDocument();
+  });
+
+  it("copes with an empty diagnostics payload and a diagnostics load failure", async () => {
+    mockApi({ [`GET /api/assessments/${AID}`]: { ...fx.assessment, status: "unsupported", overall_score: null, stages: [] }, [`GET /api/assessments/${AID}/diagnostics`]: {} });
+    const view = open();
+    expect(await screen.findByText("No supported QRadar artifacts detected")).toBeInTheDocument();
+    expect(screen.getByText(/No folders - files are at the archive root/)).toBeInTheDocument();
+    view.unmount();
+    mockApi({ [`GET /api/assessments/${AID}`]: { ...fx.assessment, status: "unsupported", overall_score: null, stages: [] }, [`GET /api/assessments/${AID}/diagnostics`]: () => json({ detail: "boom" }, 500) });
+    open();
+    expect(await screen.findByText(/boom/)).toBeInTheDocument();
+  });
+
   it("shows an error state when the assessment cannot be loaded", async () => {
     mockApi({ [`GET /api/assessments/${AID}`]: () => json({ detail: "Not found" }, 404) });
     open();

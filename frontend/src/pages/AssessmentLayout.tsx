@@ -9,6 +9,7 @@ import { useAssessment, useResume } from "@/lib/queries";
 import { cn, fmtDate } from "@/lib/utils";
 import { useAppSelector } from "@/store/hooks";
 import { can } from "@/store/auth";
+import { DiagnosticsPanel } from "@/components/DiagnosticsPanel";
 import type { Assessment } from "@/types";
 import { createContext, useContext } from "react";
 
@@ -82,7 +83,7 @@ export default function AssessmentLayout() {
           <StatusBadge status={a.status} />
           <span className="text-xs text-muted-foreground">{a.qradar_version ? `QRadar ${a.qradar_version} · ` : ""}{a.source_filename} · {fmtDate(a.created_at)}{a.consultant_name ? ` · ${a.consultant_name}` : ""}</span>
         </div>
-        {!ready ? <Progress a={a} /> : (
+        {a.status === "unsupported" ? <DiagnosticsPanel id={id} /> : !ready ? <Progress a={a} /> : (
           <>
             {a.status === "partial" && <div role="status" className="mb-4 flex items-center gap-2 rounded-md border border-sev-medium/40 bg-sev-medium/10 px-3 py-2 text-sm"><Activity className="size-4 text-sev-medium" />Some analysis stages could not complete (missing or unreadable data). Available results are shown; you can resume to retry.</div>}
             <nav aria-label="Assessment sections" className="sticky top-14 z-30 -mx-4 mb-6 overflow-x-auto border-b bg-background/80 px-4 backdrop-blur-md lg:-mx-6 lg:px-6">

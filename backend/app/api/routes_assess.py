@@ -185,6 +185,13 @@ def get_assessment(aid: str, user: User = Depends(current_user), db: Session = D
     return _get_a(db, aid)
 
 
+@router.get("/assessments/{aid}/diagnostics")
+def get_diagnostics(aid: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Archive inventory + QRadar-indicator report produced by the extract stage (available in any status once extracted)."""
+    _get_a(db, aid)
+    return get_data(db, aid, "diagnostics") or {}
+
+
 @router.patch("/assessments/{aid}", response_model=AssessmentOut)
 def update_assessment(aid: str, body: AssessmentUpdate, request: Request, user: User = Depends(require(Perm.edit)), db: Session = Depends(get_db)):
     a = _get_a(db, aid)

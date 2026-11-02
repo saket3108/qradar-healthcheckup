@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { del, get, patch, post, put } from "./api";
-import type { Assessment, AuditRow, ChatMsg, CommentRow, DeploymentCheck, ExportRow, Finding, HealthResp, Licensing, NotificationsResp, Overview, PerformanceResp, ReportConfig, ReportConfigResp, Topology, User, Environment, LogSourceSummary, WinCollectSummary, AppSummary } from "@/types";
+import type { ArchiveDiagnostics, Assessment, AuditRow, ChatMsg, CommentRow, DeploymentCheck, ExportRow, Finding, HealthResp, Licensing, NotificationsResp, Overview, PerformanceResp, ReportConfig, ReportConfigResp, Topology, User, Environment, LogSourceSummary, WinCollectSummary, AppSummary } from "@/types";
 
 export const qk = {
   assessments: (q?: string, status?: string) => ["assessments", q ?? "", status ?? ""] as const,
@@ -29,6 +29,7 @@ export const useAssessment = (id: string) =>
 function useData<T>(id: string, path: string, enabled: boolean, extra = "") {
   return useQuery({ queryKey: qk.data(id, path, extra), queryFn: () => get<T>(`/api/assessments/${id}/${path}`), enabled });
 }
+export const useDiagnostics = (id: string, ok: boolean) => useData<ArchiveDiagnostics>(id, "diagnostics", ok);
 export const useOverview = (id: string, ok: boolean) => useData<Overview>(id, "overview", ok);
 export const useDeployment = (id: string, ok: boolean) => useData<{ topology: Topology; checks: DeploymentCheck[]; environment: Environment }>(id, "deployment", ok);
 export const useLogSourceAnalysis = (id: string, ok: boolean) => useData<{ logsources: LogSourceSummary; wincollect: WinCollectSummary }>(id, "logsources-analysis", ok);

@@ -23,7 +23,7 @@ export const PriorityBadge = ({ priority }: { priority: string }) => <Badge tone
 
 const STATUS_TONE: Record<string, string> = {
   running: "ok", healthy: "ok", pass: "ok", connected: "ok", enabled: "ok", completed: "ok", ok: "ok", open: "high", accepted: "info", resolved: "ok", dismissed: "neutral",
-  stopped: "neutral", disabled: "neutral", unknown: "neutral", queued: "info", processing: "primary", partial: "medium",
+  stopped: "neutral", disabled: "neutral", unknown: "neutral", queued: "info", processing: "primary", partial: "medium", unsupported: "medium",
   degraded: "medium", warning: "medium", error: "critical", critical: "critical", failed: "critical", disconnected: "high",
 };
 export const StatusBadge = ({ status }: { status: string }) => <Badge tone={STATUS_TONE[status.toLowerCase()] ?? "neutral"} dot>{status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}</Badge>;

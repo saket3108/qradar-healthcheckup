@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import gzip
 import io
+import logging
 import os
 import posixpath
 import shutil
@@ -21,6 +22,8 @@ from typing import BinaryIO
 
 from app.core.config import Settings, get_settings
 from app.ingestion.classify import ARCHIVE_RE, classify, member_cap
+
+log = logging.getLogger(__name__)
 
 
 class ArchiveSecurityError(Exception):
@@ -225,8 +228,9 @@ class SafeExtractor:
 
         with opener() as src:
             if is_nested:
-                self._extract_nested(src, rel, prefix, depth)
-                entry["nested"] = True
+                entry["nested"] = self._extract_nested(src, rel, prefix, depth)
+                if not entry["nested"]:
+                    entry["extracted"] = False
             elif is_gz:
                 self._extract_gz_member(src, rel, full, cat, cap, entry)
             else:
@@ -269,16 +273,22 @@ class SafeExtractor:
         entry.update(extracted=True, size=written, truncated=trunc, path=rel_u)
         self.result.files.append(ExtractedFile(rel_u, written, cat, trunc))
 
-    def _extract_nested(self, src: BinaryIO, rel: str, prefix: str, depth: int) -> None:
+    def _extract_nested(self, src: BinaryIO, rel: str, prefix: str, depth: int) -> bool:
+        """Extract an archive found inside an archive.  Returns False (member catalogued, job continues) when the
+        file only *looks* like an archive by name - e.g. macOS ``._x.tgz`` AppleDouble stubs or truncated copies."""
         if depth + 1 > self.s.max_nested_depth:
             raise ArchiveSecurityError(f"Archive nesting deeper than {self.s.max_nested_depth}")
         tmp = self.dest / f".nested_{depth}_{len(self._seen)}"
-        written, trunc, _ = (0, False, tmp)
         try:
             with open(tmp, "wb") as fh:
                 shutil.copyfileobj(src, fh, 1024 * 1024)
             sub_prefix = posixpath.join(prefix, posixpath.splitext(posixpath.basename(rel))[0].replace(".tar", "")) + "/"
             self._extract_archive(tmp, sub_prefix, depth + 1, rel)
+            return True
+        except (UnsupportedArchiveError, tarfile.TarError, zipfile.BadZipFile, gzip.BadGzipFile, EOFError) as e:
+            log.warning("nested archive %s could not be opened (%s); keeping it as a plain file", rel, e)
+            self.result.warnings.append(f"Nested archive {rel} could not be opened ({type(e).__name__}); skipped")
+            return False
         finally:
             tmp.unlink(missing_ok=True)
 
